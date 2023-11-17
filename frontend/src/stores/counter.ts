@@ -1,12 +1,12 @@
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { defineStore } from "pinia";
 
-export const useCounterStore = defineStore("counter", () => {
-  const count = ref(0);
-  const doubleCount = computed(() => count.value * 2);
-  function increment() {
-    count.value++;
+// 地址栏
+export const useRouteStore = defineStore("bili_url", () => {
+  const path = ref("");
+  function setPath(value:string) {
+    path.value = value;
   }
 
-  return { count, doubleCount, increment };
+  return { path, setPath };
 });

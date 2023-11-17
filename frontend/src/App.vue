@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // import { useI18n } from "vue-i18n";
-import { reactive } from "vue";
+import { onMounted, reactive } from "vue";
 import { GetAvatar, Minimize, Quit } from "../wailsjs/go/main/App";
 
 // const { t, availableLocales: languages, locale } = useI18n();
@@ -24,6 +24,10 @@ function getImg() {
   });
 }
 
+onMounted(() => {
+  getImg();
+});
+
 document.body.addEventListener("click", function (event) {
   event.preventDefault();
 });
@@ -35,7 +39,7 @@ document.body.addEventListener("click", function (event) {
     <!-- navigation -->
     <div class="nav">
       <router-link to="/">首页</router-link>
-      <router-link to="/download">下载</router-link>
+      <!-- <router-link to="/download">下载</router-link> -->
       <router-link to="/about">关于</router-link>
     </div>
     <!-- Menu -->

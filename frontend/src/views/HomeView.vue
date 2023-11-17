@@ -1,7 +1,9 @@
 <script setup lang="ts">
 
 import { reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { OpenDir, GetClipboard, DownloadVedio, OpenFileExplorer } from '../../wailsjs/go/main/App'
+import { useRouteStore } from '@/stores/counter'
 
 const data = reactive({
   dir: "",
@@ -10,6 +12,9 @@ const data = reactive({
   proc: 0,
   inputing: false
 })
+
+const bili_url = useRouteStore()
+const router = useRouter()
 
 function getDir() {
   OpenDir().then((result: string) => {
@@ -79,6 +84,12 @@ document.addEventListener('keydown', function (event) {
   }
 });
 
+//  设置bili_url
+function setBiliUrl() {
+  bili_url.setPath(data.clipboard)
+  router.push("/download")
+}
+
 
 </script>
 
@@ -92,7 +103,8 @@ document.addEventListener('keydown', function (event) {
         <div class="item">
           <label for="">视频链接</label>
           <!--  监听鼠标聚焦事件 -->
-          <input type="text" v-model="data.clipboard" @focus="data.inputing = true" @blur="data.inputing = false">
+          <input type="text" v-model="data.clipboard" @focus="data.inputing = true" @blur="data.inputing = false"
+            @keyup.enter="setBiliUrl" />
           <button @click="getClipboard" :class="{ 'hiddenbutton': data.clipboard }">粘贴</button>
         </div>
         <div class="item">

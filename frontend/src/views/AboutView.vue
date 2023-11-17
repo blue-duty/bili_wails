@@ -33,7 +33,11 @@ onMounted(() => {
 <template>
   <div class="about">
     <!-- 展示登录二维码 -->
-    <img class="title" :src="data.urlsrc" alt="title" />
+    <!-- <img class="title" :src="data.urlsrc" alt="title" /> -->
+    <div>
+      <input type="checkbox" id="scales" name="scales" />
+      <label for="scales">Scales</label>
+    </div>
   </div>
 </template>
 

@@ -2,20 +2,37 @@
 import { onMounted, ref } from "vue";
 import { GetVideoInfo } from "../../wailsjs/go/main/App";
 import type { app } from '../../wailsjs/go/models';
+import { useRouteStore } from "@/stores/counter";
 
 
 const video_info = ref<app.VideoInfo>();
 const loading = ref<boolean>(true);
 const videos = ref<app.Episode[]>([]);
+const isAllSelected = ref<boolean>(false);
+const searchQuery = ref<string>("");
+const bili_url = useRouteStore();
+const url = ref<string>("");
 
 onMounted(() => {
     // 设置页面加载中
-    GetVideoInfo("https://www.bilibili.com/video/BV19w411p7u2?spm_id_from=333.1007.tianma.3-4-10.click").then((res: app.VideoInfo) => {
+    url.value = bili_url.path;
+    GetVideoInfo(url.value).then((res: app.VideoInfo) => {
         video_info.value = res;
         videos.value = res.eps;
         loading.value = false;
     });
 })
+
+// 输入框回车事件
+function onEnter() {
+    loading.value = true;
+    bili_url.setPath(url.value);
+    GetVideoInfo(url.value).then((res: app.VideoInfo) => {
+        video_info.value = res;
+        videos.value = res.eps;
+        loading.value = false;
+    });
+}
 
 function selectRow(ep: app.Episode) {
     // 选中行
@@ -24,19 +41,49 @@ function selectRow(ep: app.Episode) {
 
 // 全选
 function selectAll() {
+    if (isAllSelected.value) {
+        videos.value.forEach((ep: app.Episode) => {
+            ep.selected = false;
+        });
+    } else {
+        videos.value.forEach((ep: app.Episode) => {
+            ep.selected = true;
+        });
+    }
+    isAllSelected.value = !isAllSelected.value;
+}
+
+// 取消所有的已选中
+function cancelAllSelected() {
     videos.value.forEach((ep: app.Episode) => {
-        ep.selected = true;
+        ep.selected = false;
     });
+}
+
+// 通过标题内容搜索
+function searchByTitle() {
+    // 将所有的选中状态取消
+    videos.value.forEach((ep: app.Episode) => {
+        ep.selected = false;
+    });
+    if (searchQuery.value === "") {
+        videos.value = video_info.value ? video_info.value.eps : [];
+    } else {
+        videos.value = video_info.value ? video_info.value.eps.filter((ep: app.Episode) => {
+            return ep.title.includes(searchQuery.value);
+        }) : [];
+    }
 }
 
 </script>
 
 <template>
+    <header class="header-down">
+        <button class="back-button" @click="$router.back()">返回</button>
+        <input type="text" class="url-bar" v-model="url" @keyup.enter="onEnter" />
+        <!-- <button class="search-button">Search</button> -->
+    </header>
     <main class="main-container">
-        <header class="header">
-            <input type="text" placeholder="Search" class="search-bar" />
-            <button class="search-button">Search</button>
-        </header>
         <!-- Video information section -->
         <div v-if="loading" class="loading-overlay">
             <div class="loading-spinner"></div>
@@ -92,14 +139,22 @@ function selectAll() {
         </div>
         <div class="bott-bar">
             <!-- 勾选全选 -->
-            <!-- 勾选框 -->
-            <div>
+            <!-- <div>
                 <input type="checkbox" id="scales" name="scales" checked />
                 <label for="scales">Scales</label>
-            </div>
-            <div class="search-bar">
-                <input type="text" placeholder="Search" />
-                <button class="search-button">搜索</button>
+            </div> -->
+            <button class="select-button" style="width: auto;" @click="selectAll">{{ isAllSelected ? '取消全选' : '全选'
+            }}</button>
+            <!-- 已选中文件数 -->
+            <span v-if="videos.filter((ep: app.Episode) =>
+                    ep.selected).length"
+                style="margin-left: 10px; display: flex;align-items: center; font-size: 12px;cursor: pointer;"
+                @click="cancelAllSelected">已选中{{
+                    videos.filter((ep: app.Episode) =>
+                        ep.selected).length }}个文件</span>
+            <div class=" search-bar">
+                <input type="text" v-model="searchQuery" placeholder="按照标题内容搜索" />
+                <button class="search-button" @click="searchByTitle">搜索</button>
             </div>
             <button class="download-button" style="right: 3%; position: fixed;">下载</button>
         </div>
@@ -139,29 +194,37 @@ function selectAll() {
     }
 }
 
+.back-button {
+    border: none;
+    border-radius: 5px;
+    height: 20px;
+    min-width: 50px;
+    cursor: pointer;
+    margin: 10px;
+    background-color: #1E90FF;
+    color: white;
+}
+
 .main-container {
-    height: 95%;
+    height: 85%;
     width: 95%;
     font-family: 'Arial', sans-serif;
     margin: auto;
     background: #FFF;
-    padding: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); */
 }
 
 .video-info {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
+    justify-content: space-evenly;
+    margin-bottom: 10px;
     height: 30%;
 }
 
-.video-info img {
-    object-fit: cover;
-}
 
 .article {
-    margin: 0 10px;
+    margin: 0px 5px;
     display: flex;
     flex-direction: column;
 }
@@ -193,6 +256,7 @@ function selectAll() {
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin-right: 15px;
 }
 
 .face img {
@@ -207,19 +271,37 @@ function selectAll() {
     text-wrap: nowrap;
 }
 
-.header {
+.header-down {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    background-color: #FFF;
+    /* 下边框并添加阴影 */
+    border-bottom: 1px solid #ccc;
+    height: 40px;
+    /* 增加偏移和模糊半径 */
+    /* margin-bottom: 10px; */
+}
+
+.header-down input {
+    height: 20px;
+    border-radius: 50px;
+    border: 1.5px solid #00a1d6;
+    /* padding: 0 10px; */
+    width: 80%;
+    /* 选中时颜色 */
+    outline-color: #00a1d6;
+    /* pointer-events: none; */
 }
 
 .search-bar {
     width: 300px;
-    border-radius: 4px;
     position: fixed;
     display: flex;
     right: 30%;
+}
+
+.search-bar input {
+    border-radius: 5px;
 }
 
 .search-button {
@@ -233,6 +315,7 @@ function selectAll() {
 .file-table {
     /* width: 100%; */
     margin-top: 10px;
+    height: 300px;
     border: 1px solid #ccc;
 }
 
@@ -244,16 +327,9 @@ function selectAll() {
     border: black;
 }
 
-.tbody-container::-webkit-scrollbar {
-    display: none;
-    /* 隐藏WebKit浏览器的滚动条 */
-}
-
-
 .tbody-container {
-    max-height: 200px;
-    /* 这是示例高度，您可以根据需要调整 */
-    overflow-y: visible;
+    max-height: 260px;
+    overflow-y: auto;
     /* 隐藏滚动条 */
     overflow-x: hidden;
 }
@@ -286,6 +362,7 @@ tr:hover {
 
 
 .search-button:hover,
+.select-button:hover,
 .download-button:hover {
     background-color: #1C86EE;
 }
@@ -297,11 +374,12 @@ tr:hover {
 }
 
 .search-button,
+.select-button,
 .download-button {
     border: none;
-    border-radius: 1px;
-    height: 30px;
-    width: 50px;
+    border-radius: 5px;
+    height: 20px;
+    min-width: 50px;
     cursor: pointer;
     background-color: #1E90FF;
     color: white;
